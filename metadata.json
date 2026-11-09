@@ -1,0 +1,6 @@
+{
+  "name": "District Advisory | DC Airbnb Property Intelligence",
+  "description": "Precision pricing benchmarks and competitive set analytics for Washington D.C. Airbnb hosts, powered by verified Inside Airbnb data.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
