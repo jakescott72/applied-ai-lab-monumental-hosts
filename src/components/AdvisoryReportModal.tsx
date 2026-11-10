@@ -27,7 +27,18 @@ export const AdvisoryReportModal: React.FC<AdvisoryReportModalProps> = ({
   };
 
   const neighborhoodLabel = filters.neighborhood === 'ALL' ? 'District-Wide (All Neighborhoods)' : filters.neighborhood;
-  const roomTypeLabel = filters.roomType === 'ALL' ? 'All Room Types' : filters.roomType;
+  const spaceTypeLabel = filters.spaceType === 'ALL' ? 'All Space Types' : filters.spaceType;
+  const propertyStyleMap: Record<string, string> = {
+    rental_unit: 'Apartment / Rental Unit',
+    single_family: 'Single-Family Home',
+    condo: 'Condo',
+    townhouse: 'Townhouse',
+    guest_suite: 'Guest Suite / In-law',
+  };
+  const propertyStyleLabel =
+    filters.propertyStyle === 'ALL'
+      ? 'All Property Styles'
+      : propertyStyleMap[filters.propertyStyle] || filters.propertyStyle;
   const bedroomLabel =
     filters.bedrooms === 'ALL'
       ? 'All Bedrooms'
@@ -98,21 +109,31 @@ export const AdvisoryReportModal: React.FC<AdvisoryReportModalProps> = ({
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
               Target Property Criteria
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
               <div>
                 <span className="text-slate-400 block text-[11px]">DC Neighborhood</span>
-                <span className="font-bold text-slate-900 text-sm">{neighborhoodLabel}</span>
+                <span className="font-bold text-slate-900 text-sm truncate block" title={neighborhoodLabel}>
+                  {neighborhoodLabel}
+                </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Room Type</span>
-                <span className="font-bold text-slate-900 text-sm">{roomTypeLabel}</span>
+                <span className="text-slate-400 block text-[11px]">Space Type</span>
+                <span className="font-bold text-slate-900 text-sm truncate block" title={spaceTypeLabel}>
+                  {spaceTypeLabel}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Property Style</span>
+                <span className="font-bold text-slate-900 text-sm truncate block" title={propertyStyleLabel}>
+                  {propertyStyleLabel}
+                </span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Bedrooms</span>
                 <span className="font-bold text-slate-900 text-sm">{bedroomLabel}</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Matched Comps Sample</span>
+                <span className="text-slate-400 block text-[11px]">Matched Sample</span>
                 <span className="font-bold text-slate-900 text-sm font-mono">{stats.sampleSize} listings</span>
               </div>
             </div>

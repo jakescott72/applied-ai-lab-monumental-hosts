@@ -72,9 +72,13 @@ export function parseAirbnbCsv(file: File): Promise<ParseResult> {
             ]);
             const neighbourhood = (neighKey && row[neighKey] ? String(row[neighKey]).trim() : 'Washington, D.C.');
 
-            // Find room type
-            const roomKey = findKey(row, ['room_type', 'roomType', 'room_type_name', 'property_type']);
+            // Find room type (Space Type)
+            const roomKey = findKey(row, ['room_type', 'roomType', 'room_type_name']);
             const room_type = (roomKey && row[roomKey] ? String(row[roomKey]).trim() : 'Entire home/apt');
+
+            // Find property type (Property Style)
+            const propKey = findKey(row, ['property_type', 'propertyType', 'property', 'property_style']);
+            let property_type = propKey && row[propKey] ? String(row[propKey]).trim() : '';
 
             // Find price
             const priceKey = findKey(row, ['price', 'nightly_price', 'rate', 'price_usd']);
@@ -154,12 +158,29 @@ export function parseAirbnbCsv(file: File): Promise<ParseResult> {
             const latKey = findKey(row, ['latitude', 'lat']);
             const lonKey = findKey(row, ['longitude', 'lon', 'lng']);
 
+            // If property_type is empty, infer reasonable D.C. housing style from listing title
+            if (!property_type) {
+              const lowerName = sanitizedName.toLowerCase();
+              if (lowerName.includes('townhouse') || lowerName.includes('rowhouse') || lowerName.includes('rowhome') || lowerName.includes('brownstone')) {
+                property_type = 'Entire townhouse';
+              } else if (lowerName.includes('condo')) {
+                property_type = 'Entire condo';
+              } else if (lowerName.includes('suite') || lowerName.includes('guesthouse') || lowerName.includes('in-law') || lowerName.includes('basement')) {
+                property_type = 'Entire guest suite';
+              } else if (lowerName.includes('manor') || lowerName.includes('home') || lowerName.includes('house')) {
+                property_type = 'Entire residential home';
+              } else {
+                property_type = 'Entire rental unit';
+              }
+            }
+
             // Note: Host name, Host ID, Host avatar, Host URL are deliberately omitted here
             listings.push({
               id,
               name: sanitizedName,
               neighbourhood,
               room_type,
+              property_type,
               bedrooms,
               bathrooms,
               accommodates,

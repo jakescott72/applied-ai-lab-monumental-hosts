@@ -916,8 +916,33 @@ export const SAMPLE_DC_LISTINGS: AirbnbListing[] = RAW_SAMPLE_DC_LISTINGS.map((l
   // Realistic DC Airbnb availability: 100 to 160 days available (205 to 265 booked nights, 56% - 72% occupancy)
   const baseAvail = 142 - Math.min(30, Math.floor((l.number_of_reviews || 0) / 7)) + ((idx * 11) % 29) - 14;
   const availability_365 = Math.max(95, Math.min(175, baseAvail));
+
+  // Determine realistic D.C. property_type matching standard Inside Airbnb values
+  let property_type = 'Entire rental unit';
+  const lowerName = l.name.toLowerCase();
+  if (l.room_type === 'Private room') {
+    property_type = lowerName.includes('townhouse') || lowerName.includes('brownstone') || lowerName.includes('rowhome')
+      ? 'Private room in townhouse'
+      : 'Private room in rental unit';
+  } else if (l.room_type === 'Hotel room') {
+    property_type = 'Room in boutique hotel';
+  } else if (l.room_type === 'Shared room') {
+    property_type = 'Shared room in residential home';
+  } else if (lowerName.includes('townhouse') || lowerName.includes('rowhome') || lowerName.includes('rowhouse') || lowerName.includes('brownstone') || lowerName.includes('carriage house')) {
+    property_type = 'Entire townhouse';
+  } else if (lowerName.includes('condo')) {
+    property_type = 'Entire condo';
+  } else if (lowerName.includes('suite') || lowerName.includes('basement') || lowerName.includes('in-law') || lowerName.includes('guesthouse')) {
+    property_type = 'Entire guest suite';
+  } else if (lowerName.includes('manor') || lowerName.includes('family home') || lowerName.includes('home') || lowerName.includes('house')) {
+    property_type = 'Entire residential home';
+  } else {
+    property_type = 'Entire rental unit';
+  }
+
   return {
     ...l,
+    property_type,
     availability_365,
   };
 });
@@ -931,6 +956,7 @@ export function generateSampleCsvString(): string {
     'name',
     'neighbourhood_cleansed',
     'room_type',
+    'property_type',
     'bedrooms',
     'bathrooms',
     'accommodates',
@@ -946,6 +972,7 @@ export function generateSampleCsvString(): string {
     `"${l.name.replace(/"/g, '""')}"`,
     `"${l.neighbourhood}"`,
     `"${l.room_type}"`,
+    `"${l.property_type || 'Entire rental unit'}"`,
     l.bedrooms,
     l.bathrooms ?? 1,
     l.accommodates,

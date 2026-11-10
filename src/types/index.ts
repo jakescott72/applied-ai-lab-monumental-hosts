@@ -3,6 +3,7 @@ export interface AirbnbListing {
   name: string;
   neighbourhood: string;
   room_type: string;
+  property_type?: string;
   bedrooms: number;
   bathrooms?: number;
   accommodates: number;
@@ -35,7 +36,8 @@ export interface PricingSummaryStats {
 
 export interface PropertyFilters {
   neighborhood: string;
-  roomType: string;
+  spaceType: string;
+  propertyStyle: string;
   bedrooms: string;
   minAccommodates?: number;
   searchQuery?: string;

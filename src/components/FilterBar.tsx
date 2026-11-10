@@ -1,5 +1,14 @@
 import React, { useMemo } from 'react';
-import { Filter, RotateCcw, Search, SlidersHorizontal, MapPin, Home, Bed, Users } from 'lucide-react';
+import {
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  MapPin,
+  Home,
+  Building,
+  Bed,
+  Users,
+} from 'lucide-react';
 import { AirbnbListing, PropertyFilters } from '../types';
 
 interface FilterBarProps {
@@ -8,6 +17,47 @@ interface FilterBarProps {
   onFilterChange: (newFilters: PropertyFilters) => void;
   onResetFilters: () => void;
   matchedCount: number;
+}
+
+/**
+ * Helper to match property style case-insensitively
+ */
+export function matchesPropertyStyle(listing: AirbnbListing, styleKey: string): boolean {
+  if (!styleKey || styleKey === 'ALL') return true;
+  const pt = (listing.property_type || '').toLowerCase();
+  const name = (listing.name || '').toLowerCase();
+  const target = `${pt} ${name}`;
+
+  switch (styleKey) {
+    case 'rental_unit':
+      return target.includes('rental unit') || target.includes('apartment') || target.includes('flat') || target.includes('loft');
+    case 'single_family':
+      return (
+        (target.includes('home') || target.includes('house') || target.includes('manor')) &&
+        !target.includes('townhouse') &&
+        !target.includes('guesthouse') &&
+        !target.includes('rowhouse')
+      );
+    case 'condo':
+      return target.includes('condo');
+    case 'townhouse':
+      return (
+        target.includes('townhouse') ||
+        target.includes('rowhouse') ||
+        target.includes('rowhome') ||
+        target.includes('brownstone') ||
+        target.includes('carriage house')
+      );
+    case 'guest_suite':
+      return (
+        target.includes('guest suite') ||
+        target.includes('guesthouse') ||
+        target.includes('in-law') ||
+        target.includes('basement')
+      );
+    default:
+      return true;
+  }
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -32,19 +82,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       }));
   }, [allListings]);
 
-  // Dynamically extract unique room types with counts
-  const roomTypeOptions = useMemo(() => {
-    const counts = new Map<string, number>();
+  // Standardized Space Types (matches Airbnb's room_type)
+  const spaceTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      'Entire home/apt': 0,
+      'Private room': 0,
+      'Hotel room': 0,
+      'Shared room': 0,
+    };
     allListings.forEach((l) => {
-      counts.set(l.room_type, (counts.get(l.room_type) || 0) + 1);
+      if (counts[l.room_type] !== undefined) {
+        counts[l.room_type]++;
+      }
     });
-    return Array.from(counts.keys())
-      .sort()
-      .map((name) => ({
-        value: name,
-        label: name,
-        count: counts.get(name) || 0,
-      }));
+    return counts;
+  }, [allListings]);
+
+  // Standardized Property Styles (matches Airbnb's property_type)
+  const propertyStyleCounts = useMemo(() => {
+    return {
+      rental_unit: allListings.filter((l) => matchesPropertyStyle(l, 'rental_unit')).length,
+      single_family: allListings.filter((l) => matchesPropertyStyle(l, 'single_family')).length,
+      condo: allListings.filter((l) => matchesPropertyStyle(l, 'condo')).length,
+      townhouse: allListings.filter((l) => matchesPropertyStyle(l, 'townhouse')).length,
+      guest_suite: allListings.filter((l) => matchesPropertyStyle(l, 'guest_suite')).length,
+    };
   }, [allListings]);
 
   // Dynamically extract unique bedroom values with counts
@@ -65,7 +127,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const hasActiveFilters =
     filters.neighborhood !== 'ALL' ||
-    filters.roomType !== 'ALL' ||
+    filters.spaceType !== 'Entire home/apt' ||
+    filters.propertyStyle !== 'ALL' ||
     filters.bedrooms !== 'ALL' ||
     (filters.minAccommodates && filters.minAccommodates > 1) ||
     Boolean(filters.searchQuery);
@@ -103,8 +166,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Neighborhood Dropdown */}
+      {/* 5-Column Filter Form */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        {/* 1. Neighborhood Dropdown */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-slate-500" />
@@ -124,27 +188,64 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
         </div>
 
-        {/* Room Type Dropdown */}
+        {/* 2. Space Type Dropdown (room_type) */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
             <Home className="w-3.5 h-3.5 text-slate-500" />
-            <span>Room Type</span>
+            <span>Space Type</span>
           </label>
           <select
-            value={filters.roomType}
-            onChange={(e) => onFilterChange({ ...filters, roomType: e.target.value })}
+            value={filters.spaceType}
+            onChange={(e) => onFilterChange({ ...filters, spaceType: e.target.value })}
             className="w-full text-xs font-medium bg-slate-50 hover:bg-slate-100/70 border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
           >
-            <option value="ALL">All Room Types ({allListings.length})</option>
-            {roomTypeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} ({opt.count})
-              </option>
-            ))}
+            <option value="ALL">All Space Types ({allListings.length})</option>
+            <option value="Entire home/apt">
+              Entire home/apt (Default) ({spaceTypeCounts['Entire home/apt'] || 0})
+            </option>
+            <option value="Private room">
+              Private room ({spaceTypeCounts['Private room'] || 0})
+            </option>
+            <option value="Hotel room">
+              Hotel room ({spaceTypeCounts['Hotel room'] || 0})
+            </option>
+            <option value="Shared room">
+              Shared room ({spaceTypeCounts['Shared room'] || 0})
+            </option>
           </select>
         </div>
 
-        {/* Bedrooms Dropdown */}
+        {/* 3. Property Style Dropdown (property_type) */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <Building className="w-3.5 h-3.5 text-slate-500" />
+            <span>Property Style</span>
+          </label>
+          <select
+            value={filters.propertyStyle}
+            onChange={(e) => onFilterChange({ ...filters, propertyStyle: e.target.value })}
+            className="w-full text-xs font-medium bg-slate-50 hover:bg-slate-100/70 border border-slate-300 rounded-lg px-3 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
+          >
+            <option value="ALL">All Property Styles ({allListings.length})</option>
+            <option value="rental_unit">
+              Apartment / Rental Unit ({propertyStyleCounts.rental_unit})
+            </option>
+            <option value="single_family">
+              Single-Family Home ({propertyStyleCounts.single_family})
+            </option>
+            <option value="condo">
+              Condo ({propertyStyleCounts.condo})
+            </option>
+            <option value="townhouse">
+              Townhouse ({propertyStyleCounts.townhouse})
+            </option>
+            <option value="guest_suite">
+              Guest Suite / In-law ({propertyStyleCounts.guest_suite})
+            </option>
+          </select>
+        </div>
+
+        {/* 4. Bedrooms Dropdown */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
             <Bed className="w-3.5 h-3.5 text-slate-500" />
@@ -164,7 +265,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
         </div>
 
-        {/* Accommodates / Minimum Guests */}
+        {/* 5. Accommodates / Minimum Guests */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-slate-500" />
@@ -210,13 +311,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               onFilterChange({
                 ...filters,
                 neighborhood: 'Georgetown',
-                roomType: 'Entire home/apt',
+                spaceType: 'Entire home/apt',
+                propertyStyle: 'townhouse',
                 bedrooms: '2',
               })
             }
             className="px-2 py-1 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
           >
-            Georgetown 2-BR
+            Georgetown Townhouse 2-BR
           </button>
           <button
             type="button"
@@ -224,13 +326,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               onFilterChange({
                 ...filters,
                 neighborhood: 'Dupont Circle',
-                roomType: 'Entire home/apt',
+                spaceType: 'Entire home/apt',
+                propertyStyle: 'condo',
                 bedrooms: '1',
               })
             }
             className="px-2 py-1 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
           >
-            Dupont 1-BR
+            Dupont Condo 1-BR
           </button>
           <button
             type="button"
@@ -238,13 +341,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               onFilterChange({
                 ...filters,
                 neighborhood: 'Capitol Hill',
-                roomType: 'Entire home/apt',
+                spaceType: 'Entire home/apt',
+                propertyStyle: 'ALL',
                 bedrooms: 'ALL',
               })
             }
             className="px-2 py-1 text-xs text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
           >
-            Capitol Hill All
+            Capitol Hill Entire
           </button>
         </div>
       </div>

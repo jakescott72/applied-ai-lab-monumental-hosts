@@ -56,7 +56,8 @@ export const CompsTable: React.FC<CompsTableProps> = ({ listings, medianPrice })
       'Listing ID',
       'Title',
       'Neighborhood',
-      'Room Type',
+      'Space Type',
+      'Property Style',
       'Bedrooms',
       'Bathrooms',
       'Accommodates',
@@ -71,6 +72,7 @@ export const CompsTable: React.FC<CompsTableProps> = ({ listings, medianPrice })
       `"${l.name.replace(/"/g, '""')}"`,
       `"${l.neighbourhood}"`,
       `"${l.room_type}"`,
+      `"${l.property_type || 'Standard'}"`,
       l.bedrooms,
       l.bathrooms ?? 1,
       l.accommodates,
@@ -158,7 +160,7 @@ export const CompsTable: React.FC<CompsTableProps> = ({ listings, medianPrice })
                     <ArrowUpDown className="w-3 h-3" />
                   </div>
                 </th>
-                <th className="py-3 px-3">Room Type</th>
+                <th className="py-3 px-3">Space & Style</th>
                 <th
                   onClick={() => handleSort('accommodates')}
                   className="py-3 px-3 text-right cursor-pointer hover:text-slate-900 transition-colors"
@@ -231,9 +233,14 @@ export const CompsTable: React.FC<CompsTableProps> = ({ listings, medianPrice })
                       </div>
                     </td>
 
-                    {/* Room Type */}
+                    {/* Space Type & Property Style */}
                     <td className="py-3.5 px-3 whitespace-nowrap text-slate-700">
-                      {comp.room_type}
+                      <div className="font-medium text-slate-900">{comp.room_type}</div>
+                      {comp.property_type && (
+                        <div className="text-[10px] text-slate-400 truncate max-w-[150px]" title={comp.property_type}>
+                          {comp.property_type}
+                        </div>
+                      )}
                     </td>
 
                     {/* Accommodates */}
@@ -320,6 +327,12 @@ export const CompsTable: React.FC<CompsTableProps> = ({ listings, medianPrice })
                 <span>{selectedComp.neighbourhood}</span>
                 <span aria-hidden="true">·</span>
                 <span>{selectedComp.room_type}</span>
+                {selectedComp.property_type && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-medium text-slate-700">{selectedComp.property_type}</span>
+                  </>
+                )}
                 <span aria-hidden="true">·</span>
                 <span>{selectedComp.bedrooms === 0 ? 'Studio' : `${selectedComp.bedrooms} Bedrooms`}</span>
                 <span aria-hidden="true">·</span>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Header } from './components/Header';
 import { DatasetUpload } from './components/DatasetUpload';
-import { FilterBar } from './components/FilterBar';
+import { FilterBar, matchesPropertyStyle } from './components/FilterBar';
 import { PricingSummary } from './components/PricingSummary';
 import { AnnualRevenueCalculator } from './components/AnnualRevenueCalculator';
 import { StayLengthBenchmark } from './components/StayLengthBenchmark';
@@ -31,10 +31,11 @@ export default function App() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter state
+  // Filter state (Space Type defaults to 'Entire home/apt' per requirements)
   const [filters, setFilters] = useState<PropertyFilters>({
     neighborhood: 'ALL',
-    roomType: 'ALL',
+    spaceType: 'Entire home/apt',
+    propertyStyle: 'ALL',
     bedrooms: 'ALL',
     minAccommodates: 0,
     searchQuery: '',
@@ -48,17 +49,22 @@ export default function App() {
   // Apply filters to dataset
   const filteredListings = useMemo(() => {
     return allListings.filter((item) => {
-      // Neighborhood filter
+      // 1. Neighborhood filter
       if (filters.neighborhood !== 'ALL' && item.neighbourhood !== filters.neighborhood) {
         return false;
       }
 
-      // Room type filter
-      if (filters.roomType !== 'ALL' && item.room_type !== filters.roomType) {
+      // 2. Space Type filter (direct match against room_type)
+      if (filters.spaceType !== 'ALL' && item.room_type !== filters.spaceType) {
         return false;
       }
 
-      // Bedrooms filter
+      // 3. Property Style filter (case-insensitive keyword match against property_type)
+      if (!matchesPropertyStyle(item, filters.propertyStyle)) {
+        return false;
+      }
+
+      // 4. Bedrooms filter
       if (filters.bedrooms !== 'ALL') {
         const bedNum = parseInt(filters.bedrooms, 10);
         if (item.bedrooms !== bedNum) {
@@ -66,14 +72,14 @@ export default function App() {
         }
       }
 
-      // Minimum accommodates filter
+      // 5. Minimum accommodates filter
       if (filters.minAccommodates && filters.minAccommodates > 0) {
         if (item.accommodates < filters.minAccommodates) {
           return false;
         }
       }
 
-      // Search keyword filter
+      // 6. Search keyword filter
       if (filters.searchQuery && filters.searchQuery.trim().length > 0) {
         const query = filters.searchQuery.toLowerCase();
         const matchesName = item.name.toLowerCase().includes(query);
@@ -98,7 +104,21 @@ export default function App() {
     if (filters.neighborhood !== 'ALL') parts.push(filters.neighborhood);
     else parts.push('All DC Neighborhoods');
 
-    if (filters.roomType !== 'ALL') parts.push(filters.roomType);
+    if (filters.spaceType !== 'ALL') {
+      parts.push(filters.spaceType);
+    }
+
+    if (filters.propertyStyle !== 'ALL') {
+      const styleLabels: Record<string, string> = {
+        rental_unit: 'Apartment / Rental Unit',
+        single_family: 'Single-Family Home',
+        condo: 'Condo',
+        townhouse: 'Townhouse',
+        guest_suite: 'Guest Suite / In-law',
+      };
+      parts.push(styleLabels[filters.propertyStyle] || filters.propertyStyle);
+    }
+
     if (filters.bedrooms !== 'ALL') {
       parts.push(filters.bedrooms === '0' ? 'Studios' : `${filters.bedrooms}-BR`);
     }
@@ -111,10 +131,11 @@ export default function App() {
   const handleDatasetLoaded = (newListings: AirbnbListing[], newMeta: DatasetMeta) => {
     setAllListings(newListings);
     setMeta(newMeta);
-    // Reset filters to ALL when new dataset is loaded to prevent empty states
+    // Reset filters to default state when new dataset is loaded
     setFilters({
       neighborhood: 'ALL',
-      roomType: 'ALL',
+      spaceType: 'Entire home/apt',
+      propertyStyle: 'ALL',
       bedrooms: 'ALL',
       minAccommodates: 0,
       searchQuery: '',
@@ -125,7 +146,8 @@ export default function App() {
   const handleResetFilters = () => {
     setFilters({
       neighborhood: 'ALL',
-      roomType: 'ALL',
+      spaceType: 'Entire home/apt',
+      propertyStyle: 'ALL',
       bedrooms: 'ALL',
       minAccommodates: 0,
       searchQuery: '',
